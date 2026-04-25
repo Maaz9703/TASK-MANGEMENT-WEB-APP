@@ -97,6 +97,9 @@ export default function RegisterPage() {
           </div>
         </CardFooter>
       </Card>
+      <div className="absolute bottom-6 text-[10px] text-muted-foreground text-center">
+        <p>Created by <span className="font-bold text-foreground">RAPTR MAAZ</span> | All rights reserved BY MAAZ</p>
+      </div>
     </div>
   );
 }

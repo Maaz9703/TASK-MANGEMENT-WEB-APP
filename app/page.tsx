@@ -75,7 +75,9 @@ export default function LandingPage() {
       </main>
 
       <footer className="py-12 border-t px-6 text-center text-sm text-muted-foreground">
-        &copy; 2024 Motion Inc. All rights reserved. Built with Next.js 16 and Redis Cloud.
+        <p className="font-medium">Created by <span className="text-foreground font-bold">RAPTR MAAZ</span></p>
+        <p className="mt-1">All rights reserved BY MAAZ &copy; {new Date().getFullYear()}</p>
+        <p className="mt-4 text-xs opacity-50">Built with Next.js 16 and Redis Cloud.</p>
       </footer>
     </div>
   );

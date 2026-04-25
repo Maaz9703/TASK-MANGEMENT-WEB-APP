@@ -88,6 +88,14 @@ export function Sidebar() {
         )}
       </div>
 
+      <div className="p-4 border-t text-[10px] text-muted-foreground text-center">
+        {!collapsed ? (
+          <p>Created by <span className="font-bold text-foreground">RAPTR MAAZ</span><br/>All rights reserved BY MAAZ</p>
+        ) : (
+          <p>© MAAZ</p>
+        )}
+      </div>
+
       <CreateProjectModal
         workspaceId="default" // This should be fetched from session or state
         isOpen={isCreateModalOpen}
