@@ -39,6 +39,19 @@ export async function updateTaskColumn(taskId: string, newColumnId: string, newO
   return updatedTask;
 }
 
+export async function updateTask(taskId: string, updates: any) {
+  const task = await redis.get(`task:${taskId}`);
+  if (!task) throw new Error("Task not found");
+
+  const updatedTask = { ...(task as any), ...updates };
+
+  await redis.set(`task:${taskId}`, updatedTask);
+  revalidatePath("/board");
+  revalidatePath("/list");
+  revalidatePath("/calendar");
+  return updatedTask;
+}
+
 export async function getProjectTasks(projectId: string) {
   const taskIds = await redis.smembers(`project:${projectId}:tasks`);
   const tasks = [];

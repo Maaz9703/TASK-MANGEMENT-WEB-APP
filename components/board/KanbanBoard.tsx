@@ -23,7 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { BoardColumn } from "@/components/board/BoardColumn";
 import { TaskCard } from "@/components/board/TaskCard";
-import { updateTaskColumn } from "@/actions/task";
+import { updateTaskColumn, updateTask } from "@/actions/task";
 import { useStore } from "@/store/useStore";
 
 import { TaskDetailModal } from "@/components/board/TaskDetailModal";
@@ -67,8 +67,8 @@ export function KanbanBoard({ initialColumns, initialTasks, projectId, workspace
   const handleUpdateTask = async (updates: any) => {
     // Optimistic update
     setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, ...updates } : t));
-    // In a real app, call a server action here
-    // await updateTask(selectedTask.id, updates);
+    // Call server action
+    await updateTask(selectedTask.id, updates);
   };
 
   const handleDeleteTask = async () => {
