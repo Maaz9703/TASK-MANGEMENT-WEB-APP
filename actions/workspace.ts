@@ -21,7 +21,7 @@ export async function createWorkspace(data: any) {
   };
 
   // Store workspace
-  await redis.set(`workspace:${workspaceId}`, JSON.stringify(workspace));
+  await redis.set(`workspace:${workspaceId}`, workspace);
   // Index workspace by user membership
   await redis.sadd(`user:${session.user.id}:workspaces`, workspaceId);
 
@@ -37,8 +37,8 @@ export async function getUserWorkspaces() {
   const workspaces = [];
 
   for (const id of workspaceIds) {
-    const wsStr = await redis.get(`workspace:${id}`);
-    if (wsStr) workspaces.push(JSON.parse(wsStr));
+    const ws = await redis.get(`workspace:${id}`);
+    if (ws) workspaces.push(ws as any);
   }
 
   return workspaces;
