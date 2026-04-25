@@ -23,10 +23,28 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDelete }: T
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
   const [status, setStatus] = useState(task.status);
+  const [dueDate, setDueDate] = useState(task.dueDate || "");
+  const [assignee, setAssignee] = useState(task.assignee || "unassigned");
+  const [subtasks, setSubtasks] = useState<{id: string, title: string, completed: boolean}[]>(task.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState("");
 
   const handleSave = () => {
-    onUpdate({ title, description, priority, status });
+    onUpdate({ title, description, priority, status, dueDate, assignee, subtasks });
     onClose();
+  };
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return;
+    setSubtasks([...subtasks, { id: crypto.randomUUID(), title: newSubtask, completed: false }]);
+    setNewSubtask("");
+  };
+
+  const toggleSubtask = (id: string) => {
+    setSubtasks(subtasks.map(st => st.id === id ? { ...st, completed: !st.completed } : st));
+  };
+
+  const removeSubtask = (id: string) => {
+    setSubtasks(subtasks.filter(st => st.id !== id));
   };
 
   return (
@@ -60,9 +78,42 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDelete }: T
             
             <div className="space-y-2">
               <Label className="text-muted-foreground uppercase text-xs font-bold tracking-wider">Subtasks</Label>
-              <div className="border rounded-md p-4 bg-zinc-50 dark:bg-zinc-900/50 text-center text-sm text-muted-foreground italic">
-                No subtasks yet. Click to add one.
+              <div className="flex gap-2 mb-4">
+                <Input 
+                  value={newSubtask} 
+                  onChange={(e) => setNewSubtask(e.target.value)} 
+                  placeholder="Add a new subtask..." 
+                  onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addSubtask(); } }} 
+                />
+                <Button type="button" onClick={addSubtask} variant="secondary">Add</Button>
               </div>
+              
+              {subtasks.length === 0 ? (
+                <div className="border rounded-md p-4 bg-zinc-50 dark:bg-zinc-900/50 text-center text-sm text-muted-foreground italic">
+                  No subtasks yet. Add one above.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {subtasks.map(st => (
+                    <div key={st.id} className="flex items-center justify-between p-2 border rounded-md group hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="checkbox" 
+                          checked={st.completed} 
+                          onChange={() => toggleSubtask(st.id)} 
+                          className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer" 
+                        />
+                        <span className={`text-sm ${st.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          {st.title}
+                        </span>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeSubtask(st.id)}>
+                        <Trash2 className="h-3 w-3"/>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -88,28 +139,35 @@ export function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDelete }: T
               <Label className="text-muted-foreground uppercase text-xs font-bold tracking-wider flex items-center gap-2">
                 <User className="h-3 w-3" /> Assignee
               </Label>
-              <div className="flex items-center gap-2 p-2 border rounded-md bg-white dark:bg-zinc-900">
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold">
-                  U
-                </div>
-                <span className="text-sm">Unassigned</span>
-              </div>
+              <Select value={assignee} onValueChange={setAssignee}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="raptr_maaz">RAPTR MAAZ</SelectItem>
+                  <SelectItem value="team_member">Team Member</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label className="text-muted-foreground uppercase text-xs font-bold tracking-wider flex items-center gap-2">
                 <Clock className="h-3 w-3" /> Due Date
               </Label>
-              <div className="text-sm p-2 border rounded-md bg-white dark:bg-zinc-900 text-muted-foreground">
-                Set due date
-              </div>
+              <Input 
+                type="date" 
+                value={dueDate} 
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full text-sm"
+              />
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">Save Changes</Button>
         </div>
       </DialogContent>
     </Dialog>
