@@ -21,7 +21,7 @@ export async function createTask(data: any) {
   };
 
   // Store task
-  await redis.set(`task:${taskId}`, JSON.stringify(task));
+  await redis.set(`task:${taskId}`, task);
   // Index task by project
   await redis.sadd(`project:${data.projectId}:tasks`, taskId);
 
@@ -30,15 +30,13 @@ export async function createTask(data: any) {
 }
 
 export async function updateTaskColumn(taskId: string, newColumnId: string, newOrder: number) {
-  const taskStr = await redis.get(`task:${taskId}`);
-  if (!taskStr) throw new Error("Task not found");
+  const task = await redis.get(`task:${taskId}`);
+  if (!task) throw new Error("Task not found");
 
-  const task = JSON.parse(taskStr);
-  task.columnId = newColumnId;
-  task.order = newOrder;
+  const updatedTask = { ...(task as any), columnId: newColumnId, order: newOrder };
 
-  await redis.set(`task:${taskId}`, JSON.stringify(task));
-  return task;
+  await redis.set(`task:${taskId}`, updatedTask);
+  return updatedTask;
 }
 
 export async function getProjectTasks(projectId: string) {
@@ -46,8 +44,8 @@ export async function getProjectTasks(projectId: string) {
   const tasks = [];
 
   for (const id of taskIds) {
-    const taskStr = await redis.get(`task:${id}`);
-    if (taskStr) tasks.push(JSON.parse(taskStr));
+    const task = await redis.get(`task:${id}`);
+    if (task) tasks.push(task as any);
   }
 
   return tasks.sort((a, b) => a.order - b.order);

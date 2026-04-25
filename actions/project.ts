@@ -19,7 +19,7 @@ export async function createProject(data: any) {
   };
 
   // Store project
-  await redis.set(`project:${projectId}`, JSON.stringify(project));
+  await redis.set(`project:${projectId}`, project);
 
   // Create default columns
   const defaultColumns = [
@@ -30,7 +30,7 @@ export async function createProject(data: any) {
   ];
 
   for (const col of defaultColumns) {
-    await redis.set(`column:${col.id}`, JSON.stringify(col));
+    await redis.set(`column:${col.id}`, col);
     await redis.sadd(`project:${projectId}:columns`, col.id);
   }
 
@@ -43,9 +43,9 @@ export async function getProjectColumns(projectId: string) {
   const columns = [];
 
   for (const id of columnIds) {
-    const colStr = await redis.get(`column:${id}`);
-    if (colStr) columns.push(JSON.parse(colStr));
+    const col = await redis.get(`column:${id}`);
+    if (col) columns.push(col as any);
   }
 
-  return columns.sort((a, b) => a.order - b.order);
+  return columns.sort((a: any, b: any) => a.order - b.order);
 }

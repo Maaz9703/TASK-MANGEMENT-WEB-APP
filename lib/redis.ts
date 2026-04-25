@@ -1,7 +1,10 @@
-import Redis from 'ioredis'
+import { Redis } from '@upstash/redis'
 
-if (!process.env.REDIS_URL) {
-  throw new Error('REDIS_URL must be defined')
+if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  throw new Error('Upstash Redis environment variables must be defined')
 }
 
-export const redis = new Redis(process.env.REDIS_URL)
+export const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+})

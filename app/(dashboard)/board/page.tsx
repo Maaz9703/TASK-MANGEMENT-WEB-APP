@@ -10,18 +10,17 @@ export default async function BoardPage() {
 
   // Find the first available project in Redis for the demo
   const allKeys = await redis.keys("project:*");
-  const projectKeys = allKeys.filter(key => !key.includes(":") || key.split(":").length === 2);
+  const projectKeys = allKeys.filter(key => key.startsWith("project:") && key.split(":").length === 2);
   let project = null;
 
   for (const key of projectKeys) {
     try {
-      const projectStr = await redis.get(key);
-      if (projectStr) {
-        project = JSON.parse(projectStr);
+      const data = await redis.get(key);
+      if (data && typeof data === "object") {
+        project = data as any;
         break;
       }
     } catch (e) {
-      // Skip keys that are not strings (e.g. sets)
       continue;
     }
   }

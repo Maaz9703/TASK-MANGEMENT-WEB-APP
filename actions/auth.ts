@@ -8,8 +8,8 @@ export async function registerUser(data: any) {
   const validated = registerSchema.parse(data);
   try {
     // Check if user exists in Redis
-    const existingStr = await redis.get(`user:${validated.email}`);
-    if (existingStr) throw new Error("User already exists");
+    const existing = await redis.get(`user:${validated.email}`);
+    if (existing) throw new Error("User already exists");
 
     const passwordHash = await bcrypt.hash(validated.password, 12);
 
@@ -22,8 +22,8 @@ export async function registerUser(data: any) {
       createdAt: new Date().toISOString(),
     };
 
-    // Store user in Redis as a JSON string
-    await redis.set(`user:${validated.email}`, JSON.stringify(user));
+    // Store user in Redis
+    await redis.set(`user:${validated.email}`, user);
 
     return {
       id: user.id,
