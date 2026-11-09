@@ -1,25 +1,12 @@
 import { auth } from "@/lib/auth";
-import { redis } from "@/lib/redis";
+import { getUserTasks } from "@/lib/data";
 import { TaskCalendar } from "@/components/dashboard/TaskCalendar";
 
 export default async function CalendarPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user?.id) return null;
 
-  // Fetch all tasks for demo
-  const taskKeys = await redis.keys("task:*");
-  const tasks = [];
-  
-  for (const key of taskKeys) {
-    try {
-      const data = await redis.get(key);
-      if (data && typeof data === "object") {
-        tasks.push(data as any);
-      }
-    } catch (e) {
-      continue;
-    }
-  }
+  const tasks: any[] = await getUserTasks(session.user.id);
 
   return (
     <div className="space-y-6">

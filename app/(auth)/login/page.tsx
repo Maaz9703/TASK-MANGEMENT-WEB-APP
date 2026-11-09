@@ -11,13 +11,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, Mail } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Link from "next/link";
+import { prepareDemo } from "@/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const startDemo = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const creds = await prepareDemo();
+      const res = await signIn("credentials", { ...creds, redirect: false });
+      if (res?.error) setError("The demo is unavailable right now. Please try again.");
+      else router.push("/board");
+    } catch {
+      setError("The demo is unavailable right now. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -54,23 +70,17 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid grid-cols-2 gap-6">
-            <Button variant="outline" onClick={() => signIn("github")}>
-              <Globe className="mr-2 h-4 w-4" />
-              Github
-            </Button>
-            <Button variant="outline" onClick={() => signIn("google")}>
-              <Mail className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-          </div>
+          <Button type="button" variant="outline" className="w-full" onClick={startDemo} disabled={loading}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Try the live demo — no sign-up
+          </Button>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Or sign in with email
               </span>
             </div>
           </div>
@@ -109,9 +119,6 @@ export default function LoginPage() {
               Register
             </Link>
           </div>
-          <Link href="/forgot-password" title="Forgot password?" className="text-sm text-primary underline-offset-4 hover:underline">
-            Forgot password?
-          </Link>
         </CardFooter>
       </Card>
       <div className="absolute bottom-6 text-[10px] text-muted-foreground text-center">

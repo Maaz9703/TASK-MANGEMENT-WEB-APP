@@ -23,7 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { BoardColumn } from "@/components/board/BoardColumn";
 import { TaskCard } from "@/components/board/TaskCard";
-import { updateTaskColumn, updateTask } from "@/actions/task";
+import { updateTaskColumn, updateTask, deleteTask } from "@/actions/task";
 import { useStore } from "@/store/useStore";
 
 import { TaskDetailModal } from "@/components/board/TaskDetailModal";
@@ -72,9 +72,10 @@ export function KanbanBoard({ initialColumns, initialTasks, projectId, workspace
   };
 
   const handleDeleteTask = async () => {
-    setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
+    const id = selectedTask.id;
+    setTasks(prev => prev.filter(t => t.id !== id));
     setSelectedTask(null);
-    // await deleteTask(selectedTask.id);
+    await deleteTask(id);
   };
 
   const onDragStart = (event: DragStartEvent) => {
@@ -134,10 +135,10 @@ export function KanbanBoard({ initialColumns, initialTasks, projectId, workspace
     const task = tasks.find((t: any) => t.id === taskId);
     if (!task) return;
 
-    // Persist to DB
-    await updateTaskColumn(taskId, task.columnId, task.order);
-    
     setActiveTask(null);
+    // Persist the new column and the position within it.
+    const order = tasks.filter((t: any) => t.columnId === task.columnId).findIndex((t: any) => t.id === taskId);
+    await updateTaskColumn(taskId, task.columnId, Math.max(order, 0));
   };
 
   return (

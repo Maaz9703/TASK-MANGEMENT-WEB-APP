@@ -13,9 +13,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const { email, password } = credentials;
         if (!email || !password) return null;
 
-        // Find user in Redis
-        // Find user in Redis
-        const user = await redis.get(`user:${email}`) as any;
+        const user = await redis.get(`user:${String(email).trim().toLowerCase()}`) as any;
         if (!user || !user.passwordHash) return null;
 
         const isValid = await bcrypt.compare(password as string, user.passwordHash);

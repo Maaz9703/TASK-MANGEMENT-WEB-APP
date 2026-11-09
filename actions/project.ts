@@ -1,51 +1,28 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { redis } from "@/lib/redis";
-import { projectSchema } from "@/lib/validations";
+import { createProjectFor, getOwnedProject, getProjectColumnsFor } from "@/lib/data";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
-export async function createProject(data: any) {
+const createProjectInput = z.object({
+  name: z.string().trim().min(2, "Project name must be at least 2 characters").max(80),
+  description: z.string().max(300).optional(),
+  color: z.string().optional(),
+  workspaceId: z.string().optional(),
+});
+
+export async function createProject(data: unknown) {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-
-  const validated = projectSchema.parse(data);
-  const projectId = crypto.randomUUID();
-
-  const project = {
-    id: projectId,
-    ...validated,
-    createdAt: new Date().toISOString(),
-  };
-
-  // Store project
-  await redis.set(`project:${projectId}`, project);
-
-  // Create default columns
-  const defaultColumns = [
-    { id: crypto.randomUUID(), name: "Backlog", order: 0, projectId },
-    { id: crypto.randomUUID(), name: "To Do", order: 1, projectId },
-    { id: crypto.randomUUID(), name: "In Progress", order: 2, projectId },
-    { id: crypto.randomUUID(), name: "Done", order: 3, projectId },
-  ];
-
-  for (const col of defaultColumns) {
-    await redis.set(`column:${col.id}`, col);
-    await redis.sadd(`project:${projectId}:columns`, col.id);
-  }
-
-  revalidatePath("/board");
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const input = createProjectInput.parse(data);
+  const { project } = await createProjectFor(session.user.id, input);
+  revalidatePath("/", "layout");
   return project;
 }
 
 export async function getProjectColumns(projectId: string) {
-  const columnIds = await redis.smembers(`project:${projectId}:columns`);
-  const columns = [];
-
-  for (const id of columnIds) {
-    const col = await redis.get(`column:${id}`);
-    if (col) columns.push(col as any);
-  }
-
-  return columns.sort((a: any, b: any) => a.order - b.order);
+  const session = await auth();
+  if (!session?.user?.id || !(await getOwnedProject(projectId, session.user.id))) return [];
+  return getProjectColumnsFor(projectId);
 }

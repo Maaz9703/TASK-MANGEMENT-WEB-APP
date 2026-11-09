@@ -27,15 +27,20 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      await registerUser(data);
+      const result = await registerUser(data);
+      if (!result.ok) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
       // Auto login after registration
       await signIn("credentials", {
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
         callbackUrl: "/board",
       });
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };

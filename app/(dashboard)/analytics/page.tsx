@@ -1,73 +1,66 @@
-"use client";
+import { auth } from "@/lib/auth";
+import { getUserTasks } from "@/lib/data";
+import { AnalyticsCharts } from "@/components/dashboard/AnalyticsCharts";
 
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+const STATUS = [
+  ["BACKLOG", "Backlog"], ["TODO", "To Do"], ["IN_PROGRESS", "In Progress"], ["IN_REVIEW", "In Review"], ["DONE", "Done"],
+] as const;
+const PRIORITY = ["URGENT", "HIGH", "MEDIUM", "LOW"] as const;
 
-const data = [
-  { name: 'Mon', completed: 4, new: 6 },
-  { name: 'Tue', completed: 7, new: 3 },
-  { name: 'Wed', completed: 5, new: 8 },
-  { name: 'Thu', completed: 12, new: 4 },
-  { name: 'Fri', completed: 9, new: 5 },
-  { name: 'Sat', completed: 2, new: 1 },
-  { name: 'Sun', completed: 3, new: 0 },
-];
+export default async function AnalyticsPage() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
 
-export default function AnalyticsPage() {
+  const tasks = await getUserTasks(session.user.id);
+  const now = Date.now();
+  const done = tasks.filter((t) => t.status === "DONE");
+  const open = tasks.filter((t) => t.status !== "DONE");
+  const overdue = open.filter((t) => t.dueDate && new Date(t.dueDate).getTime() < now);
+  const completion = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
+
+  // Created vs completed over the last 7 days.
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now - (6 - i) * 86400000);
+    return { key: d.toISOString().slice(0, 10), name: d.toLocaleDateString("en-GB", { weekday: "short" }) };
+  });
+  const trend = days.map(({ key, name }) => ({
+    name,
+    created: tasks.filter((t) => t.createdAt?.slice(0, 10) === key).length,
+    completed: done.filter((t) => t.completedAt?.slice(0, 10) === key).length,
+  }));
+  const byStatus = STATUS.map(([value, name]) => ({ name, count: tasks.filter((t) => t.status === value).length }));
+  const byPriority = PRIORITY.map((p) => ({ name: p.charAt(0) + p.slice(1).toLowerCase(), count: open.filter((t) => t.priority === p).length }));
+
+  const stats = [
+    { label: "Completion rate", value: `${completion}%` },
+    { label: "Open tasks", value: open.length },
+    { label: "Completed (7 days)", value: trend.reduce((s, d) => s + d.completed, 0) },
+    { label: "Overdue", value: overdue.length, warn: overdue.length > 0 },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">Deep insights into your team's performance and project progress.</p>
+        <p className="text-muted-foreground">Progress across all of your projects.</p>
       </div>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Completion Rate", value: "84%", change: "+12%" },
-          { label: "Active Tasks", value: "24", change: "-2" },
-          { label: "Team Velocity", value: "32 pts", change: "+5 pts" },
-          { label: "Overdue", value: "3", change: "0" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border bg-white dark:bg-zinc-900 p-6">
-            <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-            <div className="flex items-baseline gap-2 mt-2">
-              <h4 className="text-2xl font-bold">{stat.value}</h4>
-              <span className="text-xs font-medium text-green-500">{stat.change}</span>
-            </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border bg-white dark:bg-zinc-900 p-5">
+            <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+            <h4 className={`text-2xl font-bold mt-2 ${s.warn ? "text-red-500" : ""}`}>{s.value}</h4>
           </div>
         ))}
       </div>
-      
-      <div className="rounded-xl border bg-white dark:bg-zinc-900 p-6 space-y-4">
-        <h3 className="font-semibold text-lg">Task Velocity</h3>
-        <div className="h-[300px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.9)', borderColor: '#3f3f46', borderRadius: '8px' }}
-                itemStyle={{ color: '#fff' }}
-              />
-              <Area type="monotone" dataKey="completed" stroke="#4f46e5" fillOpacity={1} fill="url(#colorCompleted)" strokeWidth={2} name="Completed Tasks" />
-              <Area type="monotone" dataKey="new" stroke="#ec4899" fillOpacity={1} fill="url(#colorNew)" strokeWidth={2} name="New Tasks" />
-            </AreaChart>
-          </ResponsiveContainer>
+
+      {tasks.length === 0 ? (
+        <div className="rounded-xl border bg-white dark:bg-zinc-900 p-12 text-center text-muted-foreground">
+          Create some tasks on your board to see analytics here.
         </div>
-      </div>
+      ) : (
+        <AnalyticsCharts trend={trend} byStatus={byStatus} byPriority={byPriority} />
+      )}
     </div>
   );
 }

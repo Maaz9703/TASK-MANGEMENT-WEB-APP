@@ -9,7 +9,6 @@ export default function LandingPage() {
         <div className="text-2xl font-bold tracking-tighter text-zinc-900 dark:text-zinc-50">MOTION</div>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-sm font-medium hover:text-indigo-600 transition-colors">Features</Link>
-          <Link href="#pricing" className="text-sm font-medium hover:text-indigo-600 transition-colors">Pricing</Link>
           <Link href="/login" className="text-sm font-medium hover:text-zinc-600 transition-colors">Login</Link>
           <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white">
             <Link href="/register">Get Started</Link>
@@ -33,8 +32,8 @@ export default function LandingPage() {
                   Start Building <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-lg border-zinc-200 dark:border-zinc-800">
-                View Demo
+              <Button size="lg" variant="outline" className="h-12 px-8 text-lg border-zinc-200 dark:border-zinc-800" asChild>
+                <Link href="/login">View Demo</Link>
               </Button>
             </div>
           </div>
@@ -80,7 +79,7 @@ export default function LandingPage() {
       <footer className="py-12 border-t px-6 text-center text-sm text-muted-foreground">
         <p className="font-medium">Created by <span className="text-foreground font-bold">RAPTR MAAZ</span></p>
         <p className="mt-1">All rights reserved BY MAAZ &copy; {new Date().getFullYear()}</p>
-        <p className="mt-4 text-xs opacity-50">Built with Next.js 16 and Redis Cloud.</p>
+        <p className="mt-4 text-xs opacity-50">Built with Next.js 16, NextAuth and Upstash Redis.</p>
       </footer>
     </div>
   );

@@ -28,7 +28,8 @@ export function CreateProjectModal({ workspaceId, isOpen, onClose }: CreateProje
         workspaceId,
         visibility: "PRIVATE",
       });
-      router.push(`/board`);
+      router.push(`/board?project=${project.id}`);
+      router.refresh();
       onClose();
     } catch (error) {
       console.error(error);

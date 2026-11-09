@@ -1,54 +1,54 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getProjectColumns } from "@/actions/project";
-import { getProjectTasks } from "@/actions/task";
+import { getUserProjects, getProjectColumnsFor, getProjectTasksFor } from "@/lib/data";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
-import { redis } from "@/lib/redis";
 
-export default async function BoardPage() {
+export default async function BoardPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user?.id) return null;
 
-  // Find the first available project in Redis for the demo
-  const allKeys = await redis.keys("project:*");
-  const projectKeys = allKeys.filter(key => key.startsWith("project:") && key.split(":").length === 2);
-  let project = null;
+  const { project: requested } = await searchParams;
+  const projects = await getUserProjects(session.user.id);
+  const project = projects.find((p) => p.id === requested) ?? projects[0];
 
-  for (const key of projectKeys) {
-    try {
-      const data = await redis.get(key);
-      if (data && typeof data === "object") {
-        project = data as any;
-        break;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  
   if (!project) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <h1 className="text-2xl font-bold">No projects found</h1>
-        <p className="text-muted-foreground">Create a project to start using the board.</p>
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+        <h1 className="text-2xl font-bold">No projects yet</h1>
+        <p className="text-muted-foreground">Use “New Project” in the sidebar to create your first board.</p>
       </div>
     );
   }
 
-  const columns = await getProjectColumns(project.id);
-  const tasks = await getProjectTasks(project.id);
+  const [columns, tasks] = await Promise.all([getProjectColumnsFor(project.id), getProjectTasksFor(project.id)]);
 
   return (
     <div className="h-full flex flex-col space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{project.name} Board</h1>
-          <p className="text-muted-foreground">{project.description || "Manage your project tasks here."}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+          <p className="text-muted-foreground">{project.description || "Drag tasks between columns to update their status."}</p>
         </div>
+        {projects.length > 1 && (
+          <nav aria-label="Projects" className="flex flex-wrap gap-2">
+            {projects.map((p) => (
+              <Link
+                key={p.id}
+                href={`/board?project=${p.id}`}
+                aria-current={p.id === project.id ? "page" : undefined}
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${p.id === project.id ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
+              >
+                {p.name}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
-      
-      <KanbanBoard 
-        initialColumns={columns} 
-        initialTasks={tasks} 
+
+      <KanbanBoard
+        key={project.id}
+        initialColumns={columns}
+        initialTasks={tasks}
         projectId={project.id}
         workspaceId={project.workspaceId}
       />

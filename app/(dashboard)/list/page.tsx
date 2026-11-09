@@ -1,24 +1,13 @@
 import { auth } from "@/lib/auth";
-import { redis } from "@/lib/redis";
+import { getUserTasks } from "@/lib/data";
+
+const STATUS_LABEL: Record<string, string> = { BACKLOG: "Backlog", TODO: "To Do", IN_PROGRESS: "In Progress", IN_REVIEW: "In Review", DONE: "Done" };
 
 export default async function ListPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user?.id) return null;
 
-  // Fetch all tasks for demo (in production, filter by project/workspace)
-  const taskKeys = await redis.keys("task:*");
-  const tasks = [];
-  
-  for (const key of taskKeys) {
-    try {
-      const data = await redis.get(key);
-      if (data && typeof data === "object") {
-        tasks.push(data as any);
-      }
-    } catch (e) {
-      continue;
-    }
-  }
+  const tasks: any[] = await getUserTasks(session.user.id);
 
   // Sort by created date descending
   tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -46,7 +35,7 @@ export default async function ListPage() {
                   <th className="px-6 py-3 font-semibold text-muted-foreground">Status</th>
                   <th className="px-6 py-3 font-semibold text-muted-foreground">Priority</th>
                   <th className="px-6 py-3 font-semibold text-muted-foreground">Due Date</th>
-                  <th className="px-6 py-3 font-semibold text-muted-foreground">Assignee</th>
+                  <th className="px-6 py-3 font-semibold text-muted-foreground">Project</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -55,7 +44,7 @@ export default async function ListPage() {
                     <td className="px-6 py-4 font-medium">{task.title}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                        {task.status || "TODO"}
+                        {STATUS_LABEL[task.status] || "To Do"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -64,10 +53,10 @@ export default async function ListPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No date"}
+                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "No date"}
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground capitalize">
-                      {task.assignee?.replace('_', ' ') || "Unassigned"}
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {task.projectName}
                     </td>
                   </tr>
                 ))}

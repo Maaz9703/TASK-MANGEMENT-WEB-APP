@@ -1,67 +1,75 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { redis } from "@/lib/redis";
+import { getUserProjects, getUserTasks } from "@/lib/data";
+
+const PRIORITY_STYLE: Record<string, string> = {
+  URGENT: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  HIGH: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  MEDIUM: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+  LOW: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+};
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user?.id) return null;
 
-  // Fetch real counts from Redis
-  const projectKeys = await redis.keys("project:*");
-  const validProjectKeys = projectKeys.filter(key => key.startsWith("project:") && key.split(":").length === 2);
-  const totalProjects = validProjectKeys.length;
+  const [projects, tasks] = await Promise.all([getUserProjects(session.user.id), getUserTasks(session.user.id)]);
+  const done = tasks.filter((t) => t.status === "DONE").length;
+  const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS" || t.status === "IN_REVIEW").length;
+  const completion = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+  const now = Date.now();
+  const upcoming = tasks
+    .filter((t) => t.status !== "DONE" && t.dueDate)
+    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+    .slice(0, 6);
 
-  const taskKeys = await redis.keys("task:*");
-  let tasksInProgress = 0;
-  let tasksCompleted = 0;
-
-  for (const key of taskKeys) {
-    try {
-      const data = await redis.get(key) as any;
-      if (data && data.status) {
-        if (data.status === "DONE") tasksCompleted++;
-        else if (data.status === "IN_PROGRESS") tasksInProgress++;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
+  const stats = [
+    { label: "Projects", value: projects.length },
+    { label: "Open tasks", value: tasks.length - done },
+    { label: "In progress", value: inProgress },
+    { label: "Completed", value: `${done} · ${completion}%`, accent: "text-green-500" },
+  ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-        <p className="text-muted-foreground">Welcome back! Here's what's happening with your projects today.</p>
+        <p className="text-muted-foreground">Welcome back, {session.user.name?.split(" ")[0] || "there"}. Here’s where your work stands.</p>
       </div>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border bg-white dark:bg-zinc-900 p-6 shadow-sm">
-          <h3 className="font-semibold text-lg mb-2">Total Projects</h3>
-          <p className="text-3xl font-bold">{totalProjects}</p>
-        </div>
-        <div className="rounded-xl border bg-white dark:bg-zinc-900 p-6 shadow-sm">
-          <h3 className="font-semibold text-lg mb-2">Tasks in Progress</h3>
-          <p className="text-3xl font-bold">{tasksInProgress}</p>
-        </div>
-        <div className="rounded-xl border bg-white dark:bg-zinc-900 p-6 shadow-sm">
-          <h3 className="font-semibold text-lg mb-2">Completed Tasks</h3>
-          <p className="text-3xl font-bold text-green-500">{tasksCompleted}</p>
-        </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border bg-white dark:bg-zinc-900 p-5 shadow-sm">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">{s.label}</h3>
+            <p className={`text-3xl font-bold ${s.accent ?? ""}`}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="rounded-xl border bg-white dark:bg-zinc-900 p-6">
-        <h3 className="font-semibold text-lg mb-4">Recent Activity</h3>
-        {tasksCompleted + tasksInProgress === 0 ? (
-          <p className="text-sm text-muted-foreground italic">No recent activity. Start moving tasks!</p>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">Upcoming deadlines</h3>
+          <Link href="/calendar" className="text-sm text-primary hover:underline">Open calendar</Link>
+        </div>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing due — add due dates to tasks to see them here.</p>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 text-sm">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">R</div>
-              <div className="flex-1">
-                <p><span className="font-medium">System</span> detected <span className="font-bold">{tasksCompleted + tasksInProgress}</span> active task operations.</p>
-                <p className="text-xs text-muted-foreground">Just now</p>
-              </div>
-            </div>
-          </div>
+          <ul className="divide-y">
+            {upcoming.map((t) => {
+              const due = new Date(t.dueDate!);
+              const overdue = due.getTime() < now;
+              return (
+                <li key={t.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
+                  <span className="font-medium flex-1 min-w-[180px]">{t.title}</span>
+                  <span className="text-muted-foreground">{t.projectName}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_STYLE[t.priority] ?? PRIORITY_STYLE.LOW}`}>{t.priority}</span>
+                  <span className={overdue ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                    {overdue ? "Overdue · " : ""}{due.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </div>

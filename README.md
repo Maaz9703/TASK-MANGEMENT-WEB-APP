@@ -1,72 +1,58 @@
-# Motion - Advanced Task Management
+# Motion — Kanban Task Management
 
-Motion is a production-ready, full-stack Task Management application built with Next.js 14, TypeScript, MongoDB, and NextAuth.js v5.
+A full-stack task manager with drag-and-drop Kanban boards, list and calendar views, and live analytics. Built with **Next.js 16 (App Router), TypeScript, NextAuth v5 and Upstash Redis**, deployed on **Vercel**.
+
+**Live demo:** https://motion-pied.vercel.app
+→ Open **Login** and click **“Try the live demo — no sign-up”** to explore a ready-made project.
 
 ## Features
 
-- **Kanban Board**: Drag-and-drop tasks with real-time state management using `@dnd-kit`.
-- **Rich Text Editing**: Task descriptions powered by Tiptap with @mentions support.
-- **Real-time Collaboration**: Presence indicators and live updates via Pusher.
-- **Deep Analytics**: Burndown charts and completion rates using Recharts.
-- **Multiple Views**: Kanban, List, Calendar, and My Tasks.
-- **Auth Flow**: Secure login/register with Credentials, Google, and GitHub.
-- **Modern UI**: Sleek, responsive design with dark mode using Tailwind CSS.
+- **Kanban board** with drag-and-drop between Backlog, To Do, In Progress and Done (dnd-kit); moving a card updates its status
+- **Multiple projects** per user with a project switcher; each new account starts with a sample project
+- **Task details** with priority, rich-text description (Tiptap) and due dates; create, edit and delete
+- **List view** and **calendar view** of every task with a due date
+- **Dashboard** with open/in-progress/completed counts and upcoming or overdue deadlines
+- **Analytics** computed from real data: completion rate, created vs completed (last 7 days), tasks by status and priority
+- **Authentication** with email + password (bcrypt, JWT sessions via NextAuth); Google/GitHub sign-in turn on automatically when keys are configured
+- Light/dark theme and responsive layout
 
-## Tech Stack
+## Security
 
-- **Framework**: Next.js 14 (App Router)
-- **Database**: MongoDB Atlas with Mongoose ODM
-- **Auth**: NextAuth.js v5
-- **Styling**: Tailwind CSS + Radix UI
-- **State**: Zustand + React Query
-- **Drag & Drop**: dnd-kit
-- **Rich Text**: Tiptap
-- **Email**: Resend + React Email
+- Every project is owned by a user and indexed per user — users can only read or change their own projects and tasks
+- All server actions check the session and ownership before reading or writing
+- Inputs are validated with Zod on the server
 
-## Getting Started
+## Tech stack
 
-### 1. Prerequisites
+Next.js 16 · React 19 · TypeScript · Tailwind CSS · Radix UI · NextAuth v5 · Upstash Redis · dnd-kit · Tiptap · Recharts · Zustand · React Query
 
-- Node.js 18+
-- MongoDB Atlas account
-- Pusher account
-- Resend API key
-
-### 2. Setup Environment Variables
-
-Copy `.env.example` to `.env.local` and fill in the values:
-
-```bash
-cp .env.example .env.local
-```
-
-### 3. Install Dependencies
+## Run locally
 
 ```bash
 npm install
-```
-
-### 4. Run Development Server
-
-```bash
 npm run dev
 ```
 
-## MongoDB Atlas Setup
+Create `.env.local`:
 
-1. Create a new cluster on MongoDB Atlas.
-2. Under "Network Access", allow your IP address.
-3. Under "Database Access", create a user with read/write permissions.
-4. Get your connection string and add it to `MONGODB_URI` in `.env.local`.
-5. For Search features, create an Atlas Search index on the `tasks` collection with the default name `default`.
+```
+AUTH_SECRET=<random string>
+UPSTASH_REDIS_REST_URL=<from Upstash>
+UPSTASH_REDIS_REST_TOKEN=<from Upstash>
+# Optional OAuth
+GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID= / GITHUB_CLIENT_SECRET=
+```
 
-## Vercel Deployment
+## Data model (Redis keys)
 
-1. Push your code to GitHub.
-2. Connect your repository to Vercel.
-3. Add all environment variables from `.env.local`.
-4. Deploy!
+| Key | Value |
+| --- | --- |
+| `user:{email}` | user record (bcrypt password hash) |
+| `user:{userId}:projects` | set of the user’s project IDs |
+| `project:{id}` / `project:{id}:columns` / `project:{id}:tasks` | project, its column IDs and task IDs |
+| `column:{id}`, `task:{id}` | column and task records |
 
-## License
+---
 
-MIT
+Built by [Maaz](https://github.com/Maaz9703).

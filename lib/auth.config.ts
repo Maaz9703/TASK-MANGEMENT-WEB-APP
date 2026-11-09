@@ -3,19 +3,18 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 
+// OAuth providers are only enabled when their keys are configured.
+export const oauthProviders = {
+  google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  github: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+};
+
 export const authConfig = {
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    }),
-    // We'll leave Credentials empty here and add it in the full auth.ts
-    // or just define the type if needed.
-    Credentials({}), 
+    ...(oauthProviders.google ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })] : []),
+    ...(oauthProviders.github ? [GitHub({ clientId: process.env.GITHUB_CLIENT_ID, clientSecret: process.env.GITHUB_CLIENT_SECRET })] : []),
+    // The real credentials provider is added in lib/auth.ts.
+    Credentials({}),
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
