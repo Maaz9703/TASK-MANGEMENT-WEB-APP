@@ -1,9 +1,9 @@
-# Motion — Kanban Task Management
+# Motion â€” Kanban Task Management
 
-A full-stack task manager with drag-and-drop Kanban boards, list and calendar views, and live analytics. Built with **Next.js 16 (App Router), TypeScript, NextAuth v5 and Upstash Redis**, deployed on **Vercel**.
+A full-stack task manager with drag-and-drop Kanban boards, list and calendar views, and live analytics. Built with **Next.js 16 (App Router), TypeScript, NextAuth v5 and MongoDB** (with an Upstash Redis option), deployed on **Vercel**.
 
 **Live demo:** https://motion-pied.vercel.app
-→ Open **Login** and click **“Try the live demo — no sign-up”** to explore a ready-made project.
+â†’ Open **Login** and click **â€œTry the live demo â€” no sign-upâ€** to explore a ready-made project.
 
 ## Features
 
@@ -18,13 +18,13 @@ A full-stack task manager with drag-and-drop Kanban boards, list and calendar vi
 
 ## Security
 
-- Every project is owned by a user and indexed per user — users can only read or change their own projects and tasks
+- Every project is owned by a user and indexed per user â€” users can only read or change their own projects and tasks
 - All server actions check the session and ownership before reading or writing
 - Inputs are validated with Zod on the server
 
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS · Radix UI · NextAuth v5 · Upstash Redis · dnd-kit · Tiptap · Recharts · Zustand · React Query
+Next.js 16 Â· React 19 Â· TypeScript Â· Tailwind CSS Â· Radix UI Â· NextAuth v5 Â· Upstash Redis Â· dnd-kit Â· Tiptap Â· Recharts Â· Zustand Â· React Query
 
 ## Run locally
 
@@ -37,6 +37,8 @@ Create `.env.local`:
 
 ```
 AUTH_SECRET=<random string>
+MONGODB_URI=<MongoDB connection string>
+# or, instead of MongoDB:
 UPSTASH_REDIS_REST_URL=<from Upstash>
 UPSTASH_REDIS_REST_TOKEN=<from Upstash>
 # Optional OAuth
@@ -44,12 +46,15 @@ GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=
 GITHUB_CLIENT_ID= / GITHUB_CLIENT_SECRET=
 ```
 
-## Data model (Redis keys)
+## Data model
+
+Storage goes through a small key-value layer (lib/redis.ts) that runs on MongoDB or Upstash Redis.
+
 
 | Key | Value |
 | --- | --- |
 | `user:{email}` | user record (bcrypt password hash) |
-| `user:{userId}:projects` | set of the user’s project IDs |
+| `user:{userId}:projects` | set of the userâ€™s project IDs |
 | `project:{id}` / `project:{id}:columns` / `project:{id}:tasks` | project, its column IDs and task IDs |
 | `column:{id}`, `task:{id}` | column and task records |
 
